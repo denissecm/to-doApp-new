@@ -1,98 +1,127 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeContext } from "@/context/ThemeContext";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
+import { useContext, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { TodoItem } from "../../components/TodoItem";
+import { useTodos } from "../../hooks/useTodos";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function Index() {
+  const [text, setText] = useState("");
+  const { todos, addTodo, toggleTodo, removeTodo } = useTodos();
+  const router = useRouter();
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+  const { colorScheme, setColorScheme, theme } = useContext(ThemeContext);
+  const styles = createStyles(theme, colorScheme); //TBD
+
+  const handlePress = (id) => {
+    router.push(`/details/${id}`);
+  };
+
+  const handleAddTodo = () => {
+    if (addTodo(text)) {
+      setText("");
+    }
+  };
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Input text here"
+          placeholderTextColor="gray"
+          value={text}
+          onChangeText={setText}
+        />
+        <Pressable style={styles.button} onPress={handleAddTodo}>
+          <Text style={styles.buttonText}>Add</Text>
+        </Pressable>
+        <Pressable
+          style={styles.button}
+          onPress={() =>
+            setColorScheme(colorScheme === "light" ? "dark" : "light")
+          }
+        >
+          {colorScheme === "light" ? (
+            <MaterialCommunityIcons
+              name="weather-sunny"
+              size={24}
+              color={theme.text}
+              style={styles.icon}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="moon-waning-crescent"
+              size={24}
+              color={theme.text}
+              style={styles.icon}
+            />
+          )}
+        </Pressable>
+      </View>
+
+      <FlatList
+        data={todos}
+        renderItem={({ item }) => (
+          <TodoItem
+            item={item}
+            onToggle={toggleTodo}
+            onRemove={removeTodo}
+            onDetails={handlePress}
+          />
+        )}
+        keyExtractor={(todo) => todo.id.toString()}
+        contentContainerStyle={{ flexGrow: 1 }}
+      />
+    </SafeAreaView>
   );
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+function createStyles(theme, colorScheme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background, //theme.background
+    },
+    inputContainer: {
+      flexDirection: "row",
+      padding: 10,
+      width: "100%",
+      maxWidth: 1024,
+      marginHorizontal: "auto",
+      pointerEvents: "auto",
+    },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 5,
+      padding: 10,
+      marginRight: 10,
+      fontSize: 18,
+      minWidth: 0,
+      borderColor: theme.text,
+      color: theme.text,
+    },
+    button: {
+      backgroundColor: theme.button, //theme.button
+      borderRadius: 5,
+      padding: 10,
+    },
+    buttonText: {
+      color: theme.text, //theme.text
+      fontSize: 18,
+    },
+    themeicon: {
+      color: "theme.themeicon",
+    },
+  });
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
